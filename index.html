@@ -354,57 +354,7 @@
     line-height: 1.6;
   }
 
-  /* GAS URL設定 */
-  .gas-url-section {
-    margin-top: 40px;
-    padding-top: 24px;
-    border-top: 1px solid var(--border);
-  }
-  .gas-url-section .card-title {
-    margin-bottom: 12px;
-  }
-  .gas-input-row {
-    display: flex;
-    gap: 8px;
-  }
-  input[type="text"].gas-input {
-    flex: 1;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 14px;
-    color: var(--text-sub);
-    font-size: 12px;
-    font-family: 'DM Mono', monospace;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  input[type="text"].gas-input:focus {
-    border-color: var(--accent-border);
-    color: var(--text);
-  }
-  .btn-save {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 16px;
-    color: var(--text-sub);
-    font-size: 12px;
-    font-family: 'Noto Sans JP', sans-serif;
-    cursor: pointer;
-    transition: border-color 0.2s, color 0.2s;
-    white-space: nowrap;
-  }
-  .btn-save:hover {
-    border-color: var(--accent-border);
-    color: var(--text);
-  }
-  .saved-note {
-    font-size: 11px;
-    color: var(--accent);
-    margin-top: 6px;
-    display: none;
-  }
+
 </style>
 </head>
 <body>
@@ -449,6 +399,7 @@
 
     <!-- 完了 -->
     <div id="result-view" style="display:none;">
+      <div id="zero-amounts"></div>
       <div id="skip-errors"></div>
       <div class="result-box">
         <div class="result-title">処理完了</div>
@@ -476,16 +427,7 @@
     </div>
   </div>
 
-  <!-- GAS URL設定 -->
-  <div class="gas-url-section">
-    <div class="card-title">設定 / GAS エンドポイント URL</div>
-    <div class="gas-input-row">
-      <input type="text" class="gas-input" id="gas-url-input"
-        placeholder="https://script.google.com/macros/s/xxxxxxx/exec">
-      <button class="btn-save" onclick="saveGasUrl()">保存</button>
-    </div>
-    <div class="saved-note" id="saved-note">✓ 保存しました</div>
-  </div>
+
 
 </div>
 
@@ -544,27 +486,12 @@ function renderFileList() {
 }
 
 // =====================================================
-// GAS URL 保存・読み込み
+// GAS URL
 // =====================================================
-const GAS_URL_KEY = 'poteri_gas_url';
-
-window.addEventListener('DOMContentLoaded', () => {
-  const saved = localStorage.getItem(GAS_URL_KEY);
-  if (saved) document.getElementById('gas-url-input').value = saved;
-});
-
-function saveGasUrl() {
-  const url = document.getElementById('gas-url-input').value.trim();
-  if (url) {
-    localStorage.setItem(GAS_URL_KEY, url);
-    const note = document.getElementById('saved-note');
-    note.style.display = 'block';
-    setTimeout(() => note.style.display = 'none', 2000);
-  }
-}
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbx4Y--mhlesj6-W4ch81AjNiDnmR9Zk38RzUE7d-hDHW2X8CYlg5XcnFBwl7Erk83My/exec';
 
 function getGasUrl() {
-  return localStorage.getItem(GAS_URL_KEY) || document.getElementById('gas-url-input').value.trim();
+  return GAS_URL;
 }
 
 // =====================================================
@@ -636,6 +563,29 @@ function showStatus(view) {
 }
 
 function showResult(data) {
+  // 総振込額0円スキップ
+  const zeroAmountsEl = document.getElementById('zero-amounts');
+  zeroAmountsEl.innerHTML = '';
+  if (data.zeroAmounts && data.zeroAmounts.length > 0) {
+    const box = document.createElement('div');
+    box.className = 'error-box';
+    box.style.borderColor = 'rgba(251,191,36,0.3)';
+    box.style.background = 'rgba(251,191,36,0.06)';
+    box.innerHTML = `<div class="error-title" style="color:var(--warn)">⚠ 総振込額0円 — 以下のレコードはスキップされました</div>`;
+    const ul = document.createElement('ul');
+    ul.className = 'error-list';
+    data.zeroAmounts.forEach(e => {
+      const li = document.createElement('li');
+      li.style.color = 'var(--warn)';
+      li.style.opacity = '0.8';
+      li.style.borderBottomColor = 'rgba(251,191,36,0.1)';
+      li.textContent = `${e.filename}  ／  ${e.employeeName}`;
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+    zeroAmountsEl.appendChild(box);
+  }
+
   // スキップエラー（マスタ未ヒット）
   const skipErrors = document.getElementById('skip-errors');
   skipErrors.innerHTML = '';
